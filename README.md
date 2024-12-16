@@ -68,7 +68,7 @@ This allows you to run the script from anywhere on your system without needing t
 To run **Recon1n**, simply execute the following command:
 
 ```bash
-recon1n
+./reconin
 ```
 
 This will present a menu with all available options in the script. You can select an option by typing the corresponding number.
