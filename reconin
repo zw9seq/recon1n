@@ -1,0 +1,956 @@
+#!/bin/bash
+
+# Script for full reccoinnassance of a target
+# By zw9seq
+
+# Declare the colors for the banner
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+GRAY="\033[1;37m"
+RESET='\033[0m'
+
+# Main variables
+route_traffic="0"
+interface="$(ip r | head -1 | awk '{print $5}')"
+current_network="$(ip r | tail -1 | awk '{print $1}')"
+
+small_list=""    # CHANGE THIS
+medium_list=""    #CHANGE THIS
+big_list=""  # CHANGE THIS
+
+# Main banner
+show_banner() {
+    echo -e "${GRAY}                                               
+                ████████              █████               ████            
+               ███░░░░███           ███░░░███            ░░███            
+     ████████ ░░░    ░███  ██████  ███   ░░███ ████████   ░███  ████████  
+    ░░███░░███   ██████░  ███░░███░███    ░███░░███░░███  ░███ ░░███░░███ 
+     ░███ ░░░   ░░░░░░███░███ ░░░ ░███    ░███ ░███ ░███  ░███  ░███ ░███ 
+     ░███      ███   ░███░███  ███░░███   ███  ░███ ░███  ░███  ░███ ░███ 
+     █████    ░░████████ ░░██████  ░░░█████░   ████ █████ █████ ████ █████
+    ░░░░░      ░░░░░░░░   ░░░░░░     ░░░░░░   ░░░░ ░░░░░ ░░░░░ ░░░░ ░░░░░ 
+                                                                            ${RESET}"
+    echo -e "${GRAY}  by @zw9seq${RESET}"
+}
+
+# Main menu
+show_menu() {
+    echo ""
+    echo -e "${GREEN}  ________ Anonymice ________${RESET}"
+    echo -e "${CYAN}  [1] MAC${RESET}"
+    echo -e "${BLUE}  [2] Traffic${RESET}"
+    echo ""
+    echo -e "${GREEN}  ________ Recognition ________${RESET}"
+    echo -e "${CYAN}  [3] DNS${RESET}"
+    echo -e "${BLUE}  [4] Domain${RESET}"
+    echo -e "${CYAN}  [5] Net${RESET}"
+    echo -e "${BLUE}  [6] Ports${RESET}"
+    echo -e "${CYAN}  [7] Subdirectories${RESET}"
+    echo -e "${BLUE}  [8] Subdomain${RESET}"
+    echo -e "${CYAN}  [9] Web${RESET}"
+    echo ""
+    echo -e "${YELLOW}  [99] Exit${RESET}"
+    echo ""
+}
+
+# Auxialiary Functions
+check_command() {
+    if ! command -v "$1" &>/dev/null; then
+        echo -e "${RED}Error: '$1' command not found. Please install it.${RESET}"
+        sleep 2
+        exit 1
+    fi
+}
+
+# Main functions
+mac_func() {
+    mac_banner() {
+        echo -e "${GRAY}   
+             ****     ****     **       ****** 
+            /**/**   **/**    ****     **////**
+            /**//** ** /**   **//**   **    // 
+            /** //***  /**  **  //** /**       
+            /**  //*   /** **********/**       
+            /**   /    /**/**//////**//**    **
+            /**        /**/**     /** //****** 
+            //         // //      //   //////  
+                                            ${RESET}"
+    }
+
+    echo ""
+    echo -e "${CYAN}  You have selected MAC anonymization${RESET}"
+    sleep 1
+    clear
+    check_command "macchanger"
+    mac_banner
+    echo "  The MAC of your $interface network interface will be randomly changed"
+    sleep 2
+    ifconfig "$interface" down
+    macchanger -r "$interface" &>/dev/null
+    ifconfig "$interface" up
+    echo -e "\n  Your MAC has been changed"
+    sleep 2
+}
+
+traffic_func() {
+    traffic_banner() {
+        echo -e "${GRAY}
+             **********   *******   *******  
+            /////**///   **/////** /**////** 
+                /**     **     //**/**   /** 
+                /**    /**      /**/*******  
+                /**    /**      /**/**///**  
+                /**    //**     ** /**  //** 
+                /**     //*******  /**   //**
+                //       ///////   //     // 
+                                            ${RESET}"
+    }
+
+    echo ""
+    echo -e "${BLUE}  You have selected Traffic anonymization${RESET}"
+    sleep 1
+    clear
+    check_command "proxychains"
+    check_command "tor"
+    traffic_banner
+
+    if [ "$route_traffic" -eq 0 ]; then
+        echo "  Your traffic will be routed through TOR network"
+        route_traffic=1
+        sleep 2
+        systemctl start tor
+    elif [ "$route_traffic" -eq 1 ]; then
+        echo "  Your traffic won't be routed through TOR network"
+        route_traffic=0
+        sleep 2
+        systemctl stop tor
+    fi
+
+    
+}
+
+dns_func() {
+    dns_banner() {
+        echo -e "${GRAY}
+            *******   ****     **  ********
+            /**////** /**/**   /** **////// 
+            /**    /**/**//**  /**/**       
+            /**    /**/** //** /**/*********
+            /**    /**/**  //**/**////////**
+            /**    ** /**   //****       /**
+            /*******  /**    //*** ******** 
+            ///////   //      /// ////////  
+                                            ${RESET}"
+    }
+
+    dns_menu() {
+        echo ""
+        echo "-------------------"
+        echo "  [0] NS"
+        echo "  [1] IPV4"
+        echo "  [2] IPV6"
+        echo "  [3] MX"
+        echo "  [4] CNAME"
+        echo "  [5] SOA"
+        echo "  [6] ALL"
+        echo ""
+        echo "  [99] EXIT"
+        echo "-------------------"
+        echo ""
+    }
+
+    dns_ns() {
+        echo "Obtaining the IPs of the target's name servers"
+
+        if [ "$route_traffic" -eq 0 ]; then
+            dig NS "$target" +short 1>./"$target"_ns.txt 2>/dev/null
+        else
+            proxychains dig NS "$target" +short 1>./"$target"_ns.txt 2>/dev/null
+        fi
+
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain NS records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_ipv4() {
+        echo "Obtaining the IPv4 of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig A "$target" +short 1>./"$target"_ipv4.txt 2>/dev/null
+        else
+            proxychains dig A "$target" +short 1>./"$target"_ipv4.txt 2>/dev/null
+        fi
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain IPV4 records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_ipv6() {
+        echo "Obtaining the IPV6 of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig AAAA "$target" +short 1>./"$target"_ipv6.txt 2>/dev/null
+        else
+            proxychains dig AAAA "$target" +short 1>./"$target"_ipv6.txt 2>/dev/null
+        fi
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain IPV6 records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_mx() {
+        echo "Obtaining the mail server of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig MX "$target" +short 1>./"$target"_mx.txt 2>/dev/null
+        else
+            proxychains dig MX "$target" +short 1>./"$target"_mx.txt 2>/dev/null
+        fi
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain MX records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_cname() {
+        echo "Obtaining the canonical name of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig CNAME "$target" +short 1>./"$target"_cname.txt 2>/dev/null
+        else
+            proxychains dig CNAME "$target" +short 1>./"$target"_cname.txt 2>/dev/null
+        fi
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain CNAME records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_soa() {
+        echo "Obtaining the start of authority of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig soa "$target" +short 1>./"$target"_soa.txt 2>/dev/null
+        else
+            proxychains dig soa "$target" +short 1>./"$target"_soa.txt 2>/dev/null
+        fi
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Error: Failed to obtain SOA records for $target.${RESET}"
+            return 1
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    dns_all() {
+        echo "Obtaining all the dns records of the target"
+        
+        if [ "$route_traffic" -eq 0 ]; then
+            dig NS "$target" +short 1>./"$target"_dns.txt 2>/dev/null
+            dig A "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            dig AAAA "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            dig MX "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            dig CNAME "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            dig soa "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+        else
+            proxychains dig NS "$target" +short 1>./"$target"_dns.txt 2>/dev/null
+            proxychains dig A "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            proxychains dig AAAA "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            proxychains dig MX "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            proxychains dig CNAME "$target" +short 1>>./"$target"_dns.txt 2>/dev/null
+            proxychains dig soa "$target" +short 1>>./"$target"_dns.txt 2>/dev/null        
+        fi
+
+        echo -e "\nCompleted"
+    }
+
+    echo ""
+    echo -e "${CYAN}  You have selected DNS recognition${RESET}"
+    sleep 1
+    clear
+    check_command "host"
+    check_command "dig"
+    
+    while true; do
+        dns_banner
+        read -p "Specify your target: " target
+    
+        while [ -z "$target" ]; do
+            echo -e "\n${RED}Please enter the target.${RESET}"
+            sleep 1
+            clear
+            dns_banner
+            read -p "Specify your target: " target
+        done
+
+        if host "$target" &>/dev/null; then
+            break
+        else
+            echo -e "\n${RED}Host $target is invalid or DNS records not found. Please try again.${RESET}"
+            sleep 2
+            clear
+        fi
+    done
+
+    dns_menu
+
+    while true; do
+        read -p "Choose the query (default ALL): " query
+
+        if [ -z "$query" ]; then
+            query="99"
+        fi
+
+        case $query in
+            0)
+                dns_ns
+            ;;
+
+            1)
+                dns_ipv4
+            ;;
+
+            2)
+                dns_ipv6
+            ;;
+
+            3)
+                dns_mx
+            ;;
+
+            4)
+                dns_cname
+            ;;
+
+            5)
+                dns_soa
+            ;;
+
+            6)
+                dns_all
+            ;;
+
+            99)
+                break
+            ;;
+
+            *)
+                echo -e "\n${RED}  Please specify a valid option${RESET}"
+            ;;
+        esac
+    done
+}
+
+domain_func() {
+   domain_banner() {
+        echo -e "${GRAY}
+             *******     *******   ****     ****     **     ** ****     **
+            /**////**   **/////** /**/**   **/**    ****   /**/**/**   /**
+            /**    /** **     //**/**//** ** /**   **//**  /**/**//**  /**
+            /**    /**/**      /**/** //***  /**  **  //** /**/** //** /**
+            /**    /**/**      /**/**  //*   /** **********/**/**  //**/**
+            /**    ** //**     ** /**   /    /**/**//////**/**/**   //****
+            /*******   //*******  /**        /**/**     /**/**/**    //***
+            ///////     ///////   //         // //      // // //      ///   
+                                                                    ${RESET}"
+    }
+
+    echo ""
+    echo -e "${BLUE}  You have selected Domain recognition${RESET}"
+    sleep 1
+    clear
+
+    check_command "whois"    
+
+    while true; do
+        domain_banner
+        read -p "  Specify your target: " target
+    
+        while [ -z "$target" ]; do
+            echo -e "\n${RED}Please enter the target.${RESET}"
+            sleep 1
+            clear
+            domain_banner
+            read -p "  Specify your target: " target
+        done
+
+        if ping -c 2 -i 0.5 "$target" &>/dev/null; then
+            break
+        else
+            echo -e "\n${RED}Host $target is invalid. Please try again.${RESET}"
+            sleep 2
+            clear
+        fi
+    done
+
+    if [ "$route_traffic" -eq 0 ]; then
+        whois "$target" 1>./"$target"_domain.txt 2>/dev/null
+        if [ $? -eq 1 ]; then
+            echo -e "\n${RED}  The target doesn't have a WHOIS record."
+            rm ./"$target"_domain.txt
+        fi
+    else    
+        proxychains whois "$target" 1>./"$target"_domain.txt 2>/dev/null
+        if [ $? -eq 1 ]; then
+            echo -e "\n${RED}  The target doesn't have a WHOIS record."
+            rm ./"$target"_domain.txt
+        fi
+    fi
+
+    echo -e "\n  Recognition completed."
+    sleep 1
+}
+
+net_func() {
+   net_banner() {
+        echo -e "${GRAY}
+             ****     ** ******** **********
+            /**/**   /**/**///// /////**/// 
+            /**//**  /**/**          /**    
+            /** //** /**/*******     /**    
+            /**  //**/**/**////      /**    
+            /**   //****/**          /**    
+            /**    //***/********    /**    
+            //      /// ////////     //      
+                                        ${RESET}"
+    }
+
+    net_menu() {
+        echo ""
+        echo "-------------------"
+        echo "  [0] Local Net"
+        echo "  [1] External Net"
+        echo ""
+        echo "  [99] Exit"
+        echo "-------------------"
+        echo ""
+    }
+
+    echo -e "\n${CYAN}  You have selected Net recognition${RESET}"
+    sleep 1
+    clear
+    
+    check_command "nmap"
+    check_command "arp-scan"
+
+    while true; do
+        net_banner
+        net_menu
+        read -p "  Choose the option: " option
+    
+        while [ -z "$option" ]; do
+            echo -e "\n${RED}Please enter the option.${RESET}"
+            sleep 1
+            clear
+            net_banner
+            net_menu
+            read -p "  Choose the option: " option
+        done
+
+        case "$option" in 
+            0)
+                echo -e "\n  Scanning the network..."
+                arp-scan -I "$interface" -l -r 5 -i 7 -x -q 1>./localNet_arp_scan.txt
+                nmap -T3 -sn "$current_network" -oN ./localNet_ping_scan.txt &>/dev/null
+                echo -e "\n  Scan completed."
+                sleep 1
+                clear
+            ;;
+
+            1)
+                echo ""
+                read -p "  Enter the target network (ip/mask): " target
+
+                while [ -z "$target" ]; do
+                    echo -e "\n${RED}Please enter the target.${RESET}"
+                    sleep 1
+                    echo ""
+                    read -p "  Enter the target network (ip/mask): " target
+                done
+
+                if [ "$route_traffic" -eq 0 ]; then
+                    echo -e "\n  Scanning the network..."
+                    arp-scan "$target" -r 5 -i 7 -x -q 1>./extNet_arp_scan.txt
+                    nmap -T3 -sn "$target" -oN ./extNet_ping_scan.txt &>/dev/null
+                    echo -e "\n  Scan completed."
+                    sleep 1
+                    clear
+                else
+                    echo -e "\n  Scanning the network..."
+                    proxychains arp-scan "$target" -r 5 -i 7 -x -q 1>./extNet_arp_scan.txt 2>/dev/null
+                    proxychains nmap -T3 -sn "$target" -oN ./extNet_ping_scan.txt &>/dev/null
+                    echo -e "\n  Scan completed."
+                    sleep 1
+                    clear
+                fi 
+            ;;
+
+            99)
+                return
+            ;;
+
+            *)
+                echo -e "\n${RED}  Enter a valid option, please.${RESET}"
+                sleep 1
+                clear
+            ;;
+        esac
+    done
+}
+
+ports_func() {
+    ports_banner() {
+        echo -e "${GRAY}
+             *******    *******   *******   **********  ********
+            /**////**  **/////** /**////** /////**///  **////// 
+            /**   /** **     //**/**   /**     /**    /**       
+            /******* /**      /**/*******      /**    /*********
+            /**////  /**      /**/**///**      /**    ////////**
+            /**      //**     ** /**  //**     /**           /**
+            /**       //*******  /**   //**    /**     ******** 
+            //         ///////   //     //     //     ////////  
+            ${RESET}"
+    }
+
+    ports_menu() {
+        echo ""
+        echo "-------------------"
+        echo "  [0] Stealth scan"
+        echo "  [1] Full scan"
+        echo ""
+        echo "  [99] Exit"
+        echo "-------------------"
+        echo ""
+    }
+
+    ports_target() {
+        read -p "  Specify the target (host1,host2... | file): " target
+
+        tmp_file=$(mktemp)
+
+        while true; do
+            if [ -f "$target" ] && [ -r "$target" ]; then
+                if fping -f "$target" -r 1 &>"$tmp_file"; then
+                    host_file="$target"
+                    break
+                else
+                    echo -e "\n${RED}  The following hosts are unreachable:${RESET}"
+                    grep "unreachable" "$tmp_file"
+                    rm "$tmp_file"
+                    exit 1
+                fi
+            elif [ -f "$target" ] && ! [ -r "$target" ]; then
+                echo -e "\n${RED}  File cannot be read.${RESET}"
+                rm "$tmp_file"
+                exit 1
+            elif [ -z "$target" ]; then
+                while [ -z "$target" ]; do
+                    echo -e "\n${RED}  Please enter the target.\n${RESET}"
+                    read -p "  Specify the target (host1,host2... | file): " target
+                done
+                continue
+            else
+                host_file="$tmp_file"
+                IFS=',' read -r -a ips <<< "$target"
+                for ip in "${ips[@]}"; do
+                    ip=$(echo "$ip" | xargs)
+                    if ping -c 1 -W 1 "$ip" &>/dev/null; then
+                        echo "$ip" >> "$host_file"
+                    else
+                        echo -e "\n${RED}  Host $ip not valid. Skipping.\n${RESET}"  
+                    fi    
+                done
+                if [ -s "$host_file" ]; then
+                    break
+                else
+                    rm "$tmp_file"
+                    read -p "  Specify the target (host1,host2... | file): " target
+                    continue
+                fi
+            fi
+        done
+    }
+
+    echo -e "\n${BLUE}  You have selected Port recognition${RESET}"
+    sleep 1
+
+    check_command "nmap"
+    check_command "fping"
+
+    while true; do
+        clear
+        ports_banner
+        ports_menu
+        read -p "  Choose the option: " option
+        
+        while [ -z "$option" ]; do
+            echo -e "\n${RED}Please enter the option.${RESET}"
+            sleep 1
+            clear
+            net_banner
+            net_menu
+            read -p "  Choose the option: " option
+        done
+
+        case "$option" in 
+            0)
+                ports_target
+                
+                if [ "$route_traffic" -eq 0 ]; then
+                    echo -e "\n  Starting scan..."
+                    nmap -sS -p- -f -T2 -O -A -iL "$host_file" -oN ./stealthPorts.txt &>/dev/null
+                    echo -e "\n  Scan finished."
+                    sleep 1
+                else
+                    echo -e "\n  Starting scan..."
+                    proxychains nmap -sS -p- -f -T2 -O -A -iL "$host_file" -oN ./stealthPorts.txt &>/dev/null
+                    echo -e "\n  Scan finished."
+                    sleep 1
+                fi
+            ;;
+
+            1)
+                ports_target
+                
+                if [ "$route_traffic" -eq 0 ]; then
+                    echo -e "\n  Starting scan..."
+                    ports=$(nmap -p- --min-rate=2000 -Pn -T4 -iL "$host_file" | grep '^[0-9]' | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
+                    nmap -p"$ports" -Pn -sC -sV -iL "$host_file" -oN ./fullPorts.txt &>/dev/null
+                    echo -e "\n  Scan finished."
+                    sleep 1
+                else
+                    echo -e "\n  Starting scan..."
+                    ports=$(nmap -p- --min-rate=2000 -Pn -T4 -iL "$host_file" | grep '^[0-9]' | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
+                    proxychains nmap -p"$ports" -Pn -sC -sV -iL "$host_file" -oN ./fullPorts.txt &>/dev/null
+                    echo -e "\n  Scan finished."
+                    sleep 1
+                fi
+            ;;
+
+            99)
+                return
+            ;;
+
+            *)
+                echo -e "\n${RED}  Enter a valid option, please.${RESET}"
+                sleep 1
+                clear
+            ;;
+        esac
+
+        rm "$tmp_file"
+    done
+}
+
+subdirectories_func() {
+
+    subdirectories_banner() {
+        echo -e "${GRAY}
+              ******** **     ** ******   *******   ** *******   ********  ******  *****************   *******   ** ******** ********
+             **////// /**    /**/*////** /**////** /**/**////** /**/////  **////**/////**///**/////** /**////** /**/**///// **////// 
+            /**       /**    /**/*   /** /**    /**/**/**   /** /**      **    //     /**  **     //**/**   /** /**/**     /**       
+            /*********/**    /**/******  /**    /**/**/*******  /*******/**           /** /**      /**/*******  /**/*******/*********
+            ////////**/**    /**/*//// **/**    /**/**/**///**  /**//// /**           /** /**      /**/**///**  /**/**//// ////////**
+                   /**/**    /**/*    /**/**    ** /**/**  //** /**     //**    **    /** //**     ** /**  //** /**/**            /**
+             ******** //******* /******* /*******  /**/**   //**/********//******     /**  //*******  /**   //**/**/**************** 
+            ////////   ///////  ///////  ///////   // //     // ////////  //////      //    ///////   //     // // ////////////////  
+            ${RESET}"
+    }
+
+    subdirectories_menu() {
+        echo ""
+        echo -e "${GREEN}-------------------${RESET}"
+        echo "  [0] Small"
+        echo "  [1] Medium"
+        echo "  [2] Big"
+        echo ""
+        echo "  [99] Exit"
+        echo -e "${GREEN}-------------------${RESET}"
+        echo ""
+    }
+
+    subdirectory_target() {
+        echo ""
+        read -p "  Specify your target full URL (http:// o https://): " target
+
+        while [ -z "$target" ] || [[ ! "$target" =~ ^https?://[a-zA-Z0-9.-]+(:[0-9]+)?(/.*)?$ ]]; do
+            echo -e "\n${RED}Please enter the target correctly.${RESET}"
+            sleep 1
+            clear
+            read -p "  Specify your target full URL (http:// o https://): " target
+        done
+
+        host=$(echo "$target" | sed -E 's|https?://([^/]+).*|\1|')
+
+        if ! ping -c 1 -W 1 "$host" &>/dev/null; then
+            echo -e "\n${RED}  There is no connectivity with the specified target${RESET}"
+        fi
+    }
+
+    subdirectory_scan() {
+        subdirectory_target
+        if [ "$route_traffic" -eq 0 ]; then
+            echo -e "\n  Starting the scan..."
+            gobuster dir -u "$target" -w "$1" -t 15 -x html,php,txt,php.bak -o "./subdirectoryScan.txt" 1>/dev/null
+            echo -e "\n  Scan finished."
+            sleep 1
+        else
+            echo -e "\n  Starting the scan..."
+            gobuster dir -u "$target" -w "$1" -t 15 -x html,php,txt,php.bak --proxy "socks5://127.0.0.1:9050" -o "./subdirectoryScan.txt" 1>/dev/null
+            echo -e "\n  Scan finished."
+            sleep 1
+        fi
+    }
+
+    echo -e "\n${CYAN}  You have selected Subdirectory recognition${RESET}"
+    sleep 1
+
+    check_command "gobuster"
+
+    while true; do
+        clear
+        subdirectories_banner
+        subdirectories_menu
+        read -p "  Choose the size of the wordlist: " size
+        
+        while [ -z "$size" ]; do
+            echo -e "\n${RED}Please enter the size.${RESET}"
+            sleep 1
+            clear
+            subdirectories_banner
+            subdirectories_menu
+            read -p "  Choose the size of the wordlist: " size
+        done
+
+        case $size in
+            0)
+                subdirectory_scan "$small_list"
+            ;;
+
+            1)
+                subdirectory_scan "$medium_list"
+            ;;
+
+            2)
+                subdirectory_scan "$big_list"
+            ;;
+
+            99)
+                return
+            ;;
+
+            *)
+                echo -e "\n${RED}  Enter a valid option, please.${RESET}"
+                sleep 1
+                clear
+            ;;
+        esac
+    done
+}
+
+subdomain_func() {
+    subdomain_banner() {
+        echo -e "${GRAY}
+              ******** **     ** ******   *******     *******   ****     ****     **     ** ****     **
+             **////// /**    /**/*////** /**////**   **/////** /**/**   **/**    ****   /**/**/**   /**
+            /**       /**    /**/*   /** /**    /** **     //**/**//** ** /**   **//**  /**/**//**  /**
+            /*********/**    /**/******  /**    /**/**      /**/** //***  /**  **  //** /**/** //** /**
+            ////////**/**    /**/*//// **/**    /**/**      /**/**  //*   /** **********/**/**  //**/**
+                   /**/**    /**/*    /**/**    ** //**     ** /**   /    /**/**//////**/**/**   //****
+             ******** //******* /******* /*******   //*******  /**        /**/**     /**/**/**    //***
+            ////////   ///////  ///////  ///////     ///////   //         // //      // // //      /// 
+            ${RESET}"
+    }
+
+    echo -e "\n${BLUE}  You have selected Subdomain recognition${RESET}"
+    sleep 1
+    clear
+
+    check_command "sublist3r"
+    check_command "wget"
+    
+    subdomain_banner
+    read -p "  Specify the target domain: " target
+    
+    while [ -z "$target" ]; do
+        echo -e "\n${RED}Please enter the target.${RESET}\n"
+        sleep 1        
+        read -p "  Specify the target domain: " target
+    done
+
+    if ! ping -c 1 -W 1 "$target" &>/dev/null; then
+        echo -e "\n${RED}  There is no connectivity with the specified target.${RESET}"
+        sleep 2
+        return 1
+    fi
+
+    echo -e "\n  Starting subdomain discovery...\n"
+
+    if [ "$route_traffic" -eq 0 ]; then
+        sublist3r -d "$target" -o "$(pwd)/subdomains_tmp.txt" &>/dev/null
+        wget "$target" &>/dev/null
+        grep "href=" index.html | cut -d "/" -f 3 | grep "\." | cut -d '"' -f 1 | sort -u >> "./subdomains_tmp.txt"
+        sort "./subdomains_tmp.txt" | uniq | grep -v '^\s*$' > "./subdomains.txt"
+        rm -f index.html subdomains_tmp.txt
+        echo "  Subdomain discovery finished."
+        sleep 1
+    else
+        proxychains sublist3r -d "$target" -o "$(pwd)/subdomains.txt" &>/dev/null
+        proxychains wget "$target" &>/dev/null
+        grep "href=" index.html | cut -d "/" -f 3 | grep "\." | cut -d '"' -f 1 | sort -u >> "./subdomains_tmp.txt"
+        sort "./subdomains_tmp.txt" | uniq | grep -v '^\s*$' > "./subdomains.txt"
+        rm -f index.html subdomains_tmp.txt
+        echo "  Subdomain discovery finished."
+        sleep 1
+    fi
+}
+
+web_func() {
+    web_banner() {
+        echo -e "${GRAY} 
+                        **       ** ******** ******  
+                        /**      /**/**///// /*////** 
+                        /**   *  /**/**      /*   /** 
+                        /**  *** /**/******* /******  
+                        /** **/**/**/**////  /*//// **
+                        /**** //****/**      /*    /**
+                        /**/   ///**/********/******* 
+                        //       // //////// ///////  
+        ${RESET}"
+    }
+
+    web_scan() {
+        echo ""
+        read -p "  Enter the target: " target
+        
+        while [ -z "$target" ]; do
+            echo -e "\n${RED}Please enter the target.${RESET}"
+            sleep 1
+            clear
+            read -p "  Enter the target: " target
+        done
+
+        if ! ping -c 1 -W 1 "$target" &>/dev/null; then
+            echo -e "\n${RED}  There is no connectivity with the specified target${RESET}"
+            sleep 2
+            return 1
+        fi
+
+        echo "Starting scan..."
+
+        if [ "$route_traffic" -eq 0 ]; then
+            nikto -h "$target" -Save ./web_scan.txt
+            sleep 1
+        else
+            nikto -h "$target" -useproxy "http://127.0.0.1:9050" -Save ./web_scan.txt
+            sleep 1
+        fi
+
+        echo "Scan finished."
+    }
+
+    echo -e "\n${CYAN}  You have selected Web recognition${RESET}"
+    sleep 1
+
+    check_command "nikto"
+
+    while true; do
+        clear
+        web_banner
+        web_scan
+        break
+    done
+}
+
+quit() {
+    if [ "$route_traffic" -eq 1 ]; then
+        systemctl stop tor
+    fi
+    clear
+    exit 0
+}
+
+# Verify root is executing the script
+if [ $EUID -ne 0 ];then
+    echo -e "${RED}The script must be executed as root${RESET}"
+    exit 1
+fi
+
+# Loop for the menu
+while true; do
+    clear
+    show_banner
+    show_menu
+    read -p "  Choose an option: " res
+
+    case $res in
+        1) 
+            mac_func
+        ;;
+            
+        2)
+            traffic_func
+        ;;
+    
+        3)
+            dns_func
+        ;;
+    
+        4)
+            domain_func
+        ;;
+    
+        5)
+            net_func
+        ;;
+    
+        6)
+            ports_func
+        ;;
+    
+        7)
+            subdirectories_func
+        ;;
+    
+        8)
+            subdomain_func
+        ;;
+    
+        9)
+            web_func
+        ;;
+    
+        99)
+            quit
+        ;;
+    
+        *)
+            echo -e "\n${RED}  Invalid option, please try again.${RESET}"
+            sleep 1
+        ;;
+    esac
+done
+

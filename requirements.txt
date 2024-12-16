@@ -1,0 +1,13 @@
+macchanger
+proxy-chains
+tor
+host
+dig
+whois
+nmap
+arp-scan
+fping
+gobuster
+sublist3r
+wget
+nikto
