@@ -25,7 +25,7 @@ Next, grant execute privileges to the scripts and install the required dependenc
 
 ```bash
 chmod +x setup.sh
-chmod +x reconin
+chmod +x recon1n
 ./setup.sh
 ```
 
@@ -70,7 +70,7 @@ This allows you to run the script from anywhere on your system without needing t
 To run **Recon1n**, simply execute the following command:
 
 ```bash
-./reconin
+./recon1n
 ```
 
 This will present a menu with all available options in the script. You can select an option by typing the corresponding number.
