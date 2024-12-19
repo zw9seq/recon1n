@@ -21,9 +21,11 @@ cd recon1n
 
 ### Install Dependencies
 
-Next, install the required dependencies using the **setup.sh** script:
+Next, grant execute privileges to the scripts and install the required dependencies using the **setup.sh** script:
 
 ```bash
+chmod +x setup.sh
+chmod +x reconin
 ./setup.sh
 ```
 
